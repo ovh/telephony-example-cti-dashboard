@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="ctiApp">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Live events</title>
+    <link rel="icon" type="image/png" href="img/favicon.ico">
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/menu.css" rel="stylesheet">
+    <link href="css/sb-admin-2.css" rel="stylesheet">
+    <link href="font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+</head>
+
+<body ng-controller="mainController" onload="timerFunc()">
+
+   <div ng-show="notify" class="alert alert-success">
+       {{notify}}
+   </div>
+
+   <div ng-show="!logged">
+    <div class="row">
+        <div class="col-lg-4 col-offset-4">
+           <form role="form" name="myFirstForm2">
+                <div class="panel panel-default panel-info">
+                    <div class="panel-heading">
+                        Connection au CTI
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                             <label>Mot de passe</label>
+                             <input class="form-control" type='password' placeholder="Entrez votre token" name="token" ng-model="token" ng-pattern="/^[A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12}$/" required />
+                            <div class="checkbox">
+                                 <label>
+                                    <input type="checkbox" name="keepConnectionActive" ng-value="1" value="1"> Garder ma session active
+                                </label>
+                             </div>
+                             <small><a href="https://www.ovhtelecom.fr/g1734.guides" target="_blank">Creéz votre token</a></small>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-default" name="action" value="login" ng-click="login();" ng-disabled="!myFirstForm2.$valid">Log-in</button>
+                        </div>
+                   </div>
+               </div>
+           </form>
+        </div>
+    </div>
+   </div>
+
+     <div ng-show="logged">
+         <div id="wrapper">
+            <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            </div>
+            <a class="navbar-brand" href="#">CTI management v1.2 - {{token}}</a>
+
+            <div class="navbar-default sidebar" role="navigation">
+                <div class="sidebar-nav navbar-collapse">
+                    <ul class="nav" id="side-menu">
+                        <li>
+                            <a class="active" href="" ng-click="changePage('');"><i class="fa fa-dashboard fa-fw"></i> Vue d'ensemble</a>
+                        </li>
+                        <li>
+                            <a class="" href="" ng-click="changePage('hunting');"><i class="fa fa-dashboard fa-fw"></i> Vue des files d'appel</a>
+                        </li>
+                        <li>
+                            <a href="#"><i class="fa fa-wrench fa-fw"></i> Configuration<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level">
+                                <li>
+                                    <a href="" name="action" value="tokenPage" ng-click="changePage('token');">Token</a>
+                                </li>
+                                <li>
+                                    <a href="" name="action" value="cgiPage" ng-click="changePage('cgi');">Appel du CGI</a>
+                               </li>
+                                <li>
+                                    <a href="" name="action" value="displayPage" ng-click="changePage('display');">Affichage</a>
+                               </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="#"><i class="glyphicon glyphicon-question-sign"></i> A propos<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level">
+                                <li>
+                                    <a href="#" ng-click="changePage('help');">Aide</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="" ng-click="logout();"><i class="glyphicon glyphicon-off"></i> Déconnexion</a>
+                        </li>
+                        <!--<li>
+                            <a href="#"><i class="fa fa-sitemap fa-fw"></i> Représentation<span class="fa arrow"></span></a>
+                            <ul class="nav nav-second-level">
+                                <li>
+                                    <a href="#">Arbre</a>
+                                </li>
+                                <li>
+                                    <a href="#">Listing</a>
+                                </li>
+                            </ul>
+                        </li>
+
+-->
+
+                     </ul>
+                </div>
+            </div>
+            </nav>
+
+
+            <div id="page-wrapper">
+
+
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="page-header">{{pagename}}</h1>
+                    </div>
+                </div>
+
+                <div class="row">
+                </div>
+
+                <div ng-show="page == 'help'">
+                    <form role="form">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                Saisie du token
+                            </div>
+                            <div class="panel-body">
+                                <p>Le token est un jeton utilisé pour ce connecter sur <code>events.voip.ovh.net</code>. Celui-ci peut-être récuperé depuis l'API REST :<br/>
+                                <code>/telephony/{billingAccount}/service/{serviceName}/eventToken</code></p>
+
+                                <p>Le format du token se présente sous la forme d'un uuid (exemple : <code>1738D072-E7C8-4742-85C5-B22DA3D8BD8F</code>) et permet la récupération des notifications d'une ligne
+                                ayant souscrit au système d'évenements.</p>
+
+                                <p>L'édition du token d'entrée peut-être modifié à tout moment dans le menu :<br/> <code>Configuration => Token</code></p>
+                            </div>
+
+                            <div class="panel-heading">
+                                Activation du CGI
+                            </div>
+                            <div class="panel-body">
+                                <p>L'activation du CGI permet la remonté de fiches clientes lors de l'émission ou de la réception d'un appel en faisant appel à une URL. 
+                                Celui-ci peut-être paramétré depuis le menu :<br/> <code>Configuration => Appel du CGI</code></p>
+
+                                <p>Le site propose trois types d'éxecution d'URL :</br>
+                                    <ul>
+                                        <li><code>Modal</code> => dans le cas de l'ouverture d'une URL de manière "modale". <br/><span class="glyphicon glyphicon-warning-sign"></span> Il est parfois nécessaire d'ajouter une en-tête : <code>Access-Control-Allow-Origin</code> sur le site distant.</li>
+                                        <li><code>Popup</code> => dans les cas de l'ouverture d'une URL sous la forme d'une popup.</li>
+                                        <li><code>Silencieux</code> => dans le cas où la page ne contient pas de page visible (dans le cadre de l'execution d'un script CGI).</li>
+                                    </ul>
+                                </p>
+                                    
+
+                                <p> Certaines variables peuvent être déclarées comme dynamique dans l'URL :<br/> 
+                                    <ul>
+                                        <li><code>*CALLING*</code> => Le numéro de l'appelant</li>
+                                        <li><code>*CALLED*</code> => Le numéro de l'appelé</li>
+                                        <li><code>*EVENT*</code> => Le type d'évenement (start_ringing)</li>
+                                    </ul>
+                            </div>
+
+                       </div>
+                    </form>
+                </div>
+
+                <div ng-show="page == 'display'">
+                   <form role="form" name="mySecondForm">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                Options
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                     <label><input type='checkbox' name="hideSL" ng-checked="{{hideSL}}" ng-model="hideSL" />&nbsp;Afficher seulement les numéros en cours d'appel</label><br/>
+                                     <label><input type='checkbox' name="reinitAuto" ng-checked="{{reinitAuto}}" ng-model="reinitAuto" />&nbsp;Réinitialiser le cache à minuit</label>
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-default" name="action" value="login" ng-click="changeOptions();">Modifier</button>
+                                </div>
+                           </div>
+                       </div>
+                   </form>
+                   <form role="form" name="myFirstForm">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                Actions
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-danger" name="action" value="login" ng-click="reinit();">Réinitialiser le cache</button>
+                                 </div>
+                           </div>
+                       </div>
+                   </form>
+                </div>
+
+                <div ng-show="page == 'token'">
+                   <form role="form" name="myFirstForm">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                Paramètres du token
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                     <label>Mot de passe</label>
+                                     <input class="form-control" type='password' placeholder="Entrez votre token" name="token" ng-model="token" required 
+                                        ng-pattern="/^[A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12}$/" />
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-default" name="action" value="login" ng-click="changeToken();" ng-disabled="!myFirstForm.$valid">Modifier</button>
+                                </div>
+                           </div>
+                       </div>
+                   </form>
+                </div>
+                <div ng-show="page == 'cgi'">
+                   <form role="form" name="myForm">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                Paramètres du CGI
+                            </div>
+                            <div class="panel-body">
+
+                                <div class="form-group">
+                                     <div class="checkbox">
+                                         <label>
+                                            <input type="checkbox" ng-checked="{{cgiSet}}" ng-model="cgiSet"> Activation du CGI
+                                         </label>
+                                     </div>
+                                </div>
+
+                                <label>Type d'execution</label><br />
+                                <div class="btn-group form-group" ng-show="cgiSet">
+                                    <label class="btn btn-primary">
+                                        <input type="radio" name="cgiMode" ng-model="cgiMode" value="silent" />silencieuse
+                                    </label>
+                                    <label class="btn btn-primary">
+                                        <input type="radio" name="cgiMode" ng-model="cgiMode" value="popup" />Sous la forme d'une pop-up
+                                    </label>
+                                    <label class="btn btn-primary">
+                                        <input type="radio" name="cgiMode" ng-model="cgiMode" value="modal" />Modal
+                                    </label>
+                                </div>    
+
+                                <div class="form-group" ng-show="cgiSet">
+                                     <label>URL du cgi</label>
+                                     <input class="form-control" placeholder="" name="cgi" value="{{cgiPath}}" ng-model="cgiPath" ng-pattern="/^http(s)?:\/\/(\w+\:?.*\@)?/"/>
+                                          <span ng-show="myForm.cgi.$error.pattern">
+                                            <font color="red"><br/>Le format de l'url est invalide.</font></span>
+                                </div>
+
+<!--                                <div class="form-group" ng-show="cgiSet">
+                                     <label>Dimension de la popup</label>
+                                     <div>
+                                         Longueur : <input class="text" placeholder="" name="cgiWindowWidth" value="{{cgiWindowWidth}}" ng-model="cgiWindowWidth" ng-pattern="/^[0-9]+$/" required />
+                                           &nbsp;&nbsp;
+                                         Hauteur : <input class="text" placeholder="" name="cgiWindowHeight" value="{{cgiWindowHeight}}" ng-model="cgiWindowHeight" ng-pattern="/^[0-9]+$/" required />
+                                          <span ng-show="myForm.cgiWindowHeight.$error.required || myForm.cgiWindowHeight.$error.pattern">
+                                            <font color="red"><br/>Le format de la hauteur est invalide.</font></span>
+                                          <span ng-show="myForm.cgiWindowWidth.$error.required || myForm.cgiWindowWidth.$error.pattern">
+                                            <font color="red"><br/>Le format de la longueur est invalide.</font></span>
+                                     </div>
+                                </div>-->
+
+                                <div>
+                                    <button type="submit" class="btn btn-default" name="action" value="modify" ng-click="changeCgi();">Modifier</button>
+                                </div>
+                           </div>
+                       </div>
+                   </form>
+                </div>
+
+                <div class="modal fade" id="myModal" tabindex='-1' role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                 <h4 class="modal-title">Text</h4>
+                            </div>
+                            <div class="modal-body"><div class="te"></div></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                     </div>
+                  </div>
+
+                <div ng-show="page == 'hunting'">
+                    <div class="row">
+                        <table class="table" class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr><th>Type</th><th>Numéro</th><th>Description</th><th>Répondu</th><th>Perdu</th><th>Tout</th><th>% succès</th><th>En queue</th><th>Attente moyenne</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat-start="(key, vals) in numbers" ng-show="vals.type == 'cloudHunting' || vals.type == 'easyHunting'">
+                                    <td ><small><span ng-show="vals.type == 'easyHunting'">easy</span><span ng-show="vals.type == 'cloudHunting'">expert</span></small></td>
+                                    <td ><small>{{key}}</small></td>
+                                    <td ><small><span ng-show="vals.ressource != vals.description">{{vals.description}}</span></small></td>
+                                    <td ><small>{{vals.countanswered || 0}}</small></td>
+                                    <td ><small>{{vals.countlost || 0}}</small></td>
+                                    <td ><small>{{vals.counttotal || 0}}</small></td>
+                                    <td ><small>{{vals.percentanswered || 0}} %</small></td>
+                                    <td ><small><b>{{vals.countqueue || 0}}</b></small></td>
+                                    <td ><small>{{vals.averagewaiting || 0}} sec</small></td>
+                                </tr>
+                                <tr ng-repeat-end ng-show="vals.type == 'cloudHunting' || vals.type == 'easyHunting'">
+                                    <td colspan="9"><span><small>Queue :</small>
+                                        <span ng-repeat="(keyQ, queue) in vals.queues"><span class="label label-default"><span class="glyphicon glyphicon-option-horizontal"></span>&nbsp;{{queue.Calling}} => {{queue.QueueAgent}} : <span name="fieldToUpdate" id="q{{keyQ}}">{{queue.Timer}}</span> sec</span>&nbsp;</span></span>
+                                        <br /> <span> <small>En ligne :</small> 
+                                        <span ng-repeat="(keyM, member) in vals.members"><span class="label label-success"><span class="glyphicon glyphicon-earphone"></span>&nbsp;{{member.Calling}} => {{member.QueueAgent}} : <span name="fieldToUpdate" id="m{{keyM}}">{{member.Timer}}</span> sec ({{member.QueueTimer}} sec)</span>&nbsp;</span></span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    Journal des files d'appels
+                                </div>
+                                <div class="panel-body">
+                                    <div class="table-responsive" ng-show="lastHuntingEvents.length > 0">
+                                        <table class="table table-striped table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>File d'appel</th>
+                                                    <th>Membre</th>
+                                                    <th>Agent</th>
+                                                    <th>Durée en file</th>
+                                                    <th>Durée de l'appel</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="odd gradeX" ng-repeat="event in lastHuntingEvents">
+                                                    <td>{{event.datetime}}</td>
+                                                    <td>{{event.hunting}} {{event.huntingDesc}}</td>
+                                                    <td>{{event.calling}}</td>
+                                                    <td>{{event.member || "--"}} {{event.memberDesc}}</td>
+                                                    <td>{{event.queueTime}} sec</td>
+                                                    <td>{{event.callTime}} sec</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="table-responsive" ng-show="lastHuntingEvents.length == 0">
+                                        Aucun évenement dans l'historique...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div ng-show="!page">
+                    <div class="row">
+                        <div class="col-lg-8 panel panel-red">
+                            <div class="table-responsive" ng-show="numbersize == 0">
+                                En attente du premier évenement...
+                            </div>
+    
+                            <div class="table-responsive" ng-show="numbersize != 0">
+                                <table class="table" id="dataTables-example">
+                                    <tbody>
+                                        <tr  ng-repeat="(key, vals) in numbers" ng-show="!hideSL && (vals.type == 'sipCirpack' || vals.type == 'mgcpCirpack') || hideSL && (vals.type == 'sipCirpack' || vals.type == 'mgcpCirpack') && vals.status != 'Free' && vals.status != 'Wait'" >
+                                            <td class="center">
+                                                <img ng-show="vals.status == 'Ringing'" src="img/yellow_light.png" height="20"/>
+                                                <img ng-show="vals.status == 'Answered'" src="img/red_light.png" height="20"/>
+                                                <img ng-show="vals.status == 'Free'" src="img/green_light.png" height="20"/>
+                                            </td>
+                                            <td><span ng-show="vals.ressource != vals.description">{{vals.ressource}} ({{vals.description}})</span>
+                                                <span ng-show="vals.ressource == vals.description">{{vals.ressource}}</span>
+                                            </td>
+                                            <td class="center">{{vals.statust}}</td>
+                                            <td class="center">
+                                                <span ng-show="vals.cursimultaneous != 'undef'">{{vals.cursimultaneous}} / {{vals.simultaneous}}</span>
+                                                <span ng-show="vals.cursimultaneous == 'undef'">...</span>
+                                            </td>
+                                        </tr>
+                                        <tr  ng-repeat="(key, vals) in numbers" ng-show="vals.type == 'easyHunting' || vals.type == 'cloudHunting'" >
+                                            <td class="center">
+                                                <img ng-show="vals.status == 'Queued'" src="img/yellow_light.png" height="20"/>
+                                                <img ng-show="vals.status == 'Answered'" src="img/red_light.png" height="20"/>
+                                                <img ng-show="vals.status == 'Free'" src="img/green_light.png" height="20"/>
+                                            </td>
+                                            <td><span ng-show="vals.ressource != vals.description">{{vals.ressource}} ({{vals.description}})</span>
+                                                <span ng-show="vals.ressource == vals.description">{{vals.ressource}}</span>
+                                            </td>
+                                            <td class="center">{{vals.statust}}</td>
+                                            <td class="center">
+                                                <span ng-show="vals.cursimultaneous != 'undef'">{{countqueue || 0}}</span>
+                                                <span ng-show="vals.cursimultaneous == 'undef'">...</span>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="panel panel-yellow">
+                                <div class="panel-heading">
+                                    Evenements en cours ({{ calls.length }})
+                                </div>
+                                    
+                                <div class="panel-body" ng-show="calls.length > 0">
+                                    <table class="table table-striped table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <!--<th>Call ID</th>-->
+                                                <th>Direction</th>
+                                                <th>Etat</th>
+                                                <th>Durée</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="odd gradeX" ng-repeat="call in calls">
+                                                <td><small>{{ call.DateStart }}</small></td>
+                                                <!--<td><small>{{ call.CallId }}</small></td>-->
+                                                <td><small>{{ call.Calling }}</small><span class="glyphicon glyphicon-arrow-right"></span><small>{{ call.Called }}<span ng-show="call.Called != call.Dialed">( {{ call.Dialed }} )</span></small></td>
+                                                <td><small>{{ call.StatusTranslated }}</small></td>
+                                                <td><small><span name="fieldToUpdate">0</span> sec</small></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="panel-body" ng-show="calls.length == 0">
+                                    Aucun évenement en cours...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    Journal d'appels
+                                </div>
+                                <div class="panel-body">
+                                    <div class="table-responsive" ng-show="lastEvents.length > 0">
+                                        <table class="table table-striped table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Protocole</th>
+                                                    <th>Evenement</th>
+                                                    <th>Direction</th>
+                                                    <th>Latence</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="odd gradeX" ng-repeat="event in lastEvents">
+                                                    <td><small>{{ event.Date }}</small></td>
+                                                    <td><small>{{ event.Data.Protocol }}</small></td>
+                                                    <td><small>{{ event.Event }}</small></td>
+                                                    <td class="center" ng-if="event.Ressource != event.Data.Called && event.Ressource == event.Data.Calling"><small>
+                                                        <b>{{event.Ressource}}</b>&nbsp;<span  class="fa fa-sign-in" aria-hidden="true"></span> {{event.Data.Called}}</small></td>
+                                                    <td class="center" ng-if="event.Ressource != event.Data.Calling && event.Ressource == event.Data.Called"><small>
+                                                        {{event.Data.Calling}} <span class="fa fa-sign-out" aria-hidden="true">&nbsp;<b>{{event.Ressource}}</b></span></small></td>
+                                                    <td class="center" ng-if="event.Ressource == event.Data.Calling && event.Ressource == event.Data.Called"><small>
+                                                        <span class="fa fa-gears" aria-hidden="true">&nbsp;<b>{{event.Ressource}}</b></small></span>
+                                                    </td>
+                                                    <td class="center" ng-if="event.Ressource != event.Data.Calling && event.Ressource != event.Data.Called"><small>
+                                                        <span class="fa fa-gears" aria-hidden="true">&nbsp;<b>{{event.Ressource}}</b></small></span>
+                                                    </td>
+                                                    <td class="center"><small>{{ ( event.Timestamp - event.Data.TsGet ) / 1000000000 }}</small></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="table-responsive" ng-show="lastEvents.length == 0">
+                                        Aucun évenement dans l'historique...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    <script src="js/jquery.js"></script>
+    <script src="js/angular.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/cti.js"></script>
+
+    <!-- Metis Menu Plugin JavaScript -->
+    <script src="js/menu.js"></script>
+    <script src="js/sb-admin-2.js"></script>
+
+</body>
+</html>
